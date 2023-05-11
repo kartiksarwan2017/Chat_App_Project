@@ -1,10 +1,14 @@
+import { useEffect, useState } from "react";
 import {Box, Button, Container, HStack, Input, VStack} from "@chakra-ui/react";
 import Message from "./Components/Message";
-import {onAuthStateChanged, getAuth, GoogleAuthProvider, signInWithPopup, signOut} from "firebase/auth";
 import {app} from "./firebase";
-import { useEffect, useState } from "react";
+import {onAuthStateChanged, getAuth, GoogleAuthProvider, signInWithPopup, signOut} from "firebase/auth";
+import {getFirestore, addDoc, collection, serverTimestamp} from "firebase/firestore";
+
 
 const auth = getAuth(app);
+const db = getFirestore(app);
+
 const loginHandler = () => {
   const provider = new GoogleAuthProvider();
   signInWithPopup(auth, provider);
@@ -14,9 +18,32 @@ const logoutHandler = () => {
   signOut(auth);
 }
 
+
 function App() {
 
   const [user, setUser] = useState(false);
+  const [message, setMessage] = useState("");
+
+  const submitHandler = async (e) => {
+
+    e.preventDefault();
+  
+    try{
+  
+      await addDoc(collection(db, "Messages"), {
+        text: message,
+        uid: user.uid,
+        uri: user.photoURL,
+        createdAt: serverTimestamp()
+      });
+
+      setMessage("");
+  
+    }catch(error){
+      alert(error);
+    }
+  
+  }
 
   useEffect(() => {
    const unsubscribe =  onAuthStateChanged(auth, (data) => {
@@ -43,9 +70,13 @@ function App() {
             <Message text={"Sample message"} />
            </VStack>
    
-           <form style={{width: "100%"}}>
+           <form onSubmit={submitHandler} style={{width: "100%"}}>
             <HStack>
-              <Input placeholder="Enter a Message..." />
+              <Input 
+              value={message} 
+              onChange={(e) => setMessage(e.target.value)} 
+              placeholder="Enter a Message..." 
+              />
               <Button colorScheme={"purple"} type="submit">Send</Button>
             </HStack>
            </form>
