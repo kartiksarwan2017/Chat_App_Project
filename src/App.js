@@ -1,10 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import {Box, Button, Container, HStack, Input, VStack} from "@chakra-ui/react";
 import Message from "./Components/Message";
 import {app} from "./firebase";
 import {onAuthStateChanged, getAuth, GoogleAuthProvider, signInWithPopup, signOut} from "firebase/auth";
 import {getFirestore, addDoc, collection, serverTimestamp, onSnapshot, query, orderBy} from "firebase/firestore";
-
 
 
 const auth = getAuth(app);
@@ -22,17 +21,20 @@ const logoutHandler = () => {
 
 function App() {
 
-  const q = query(collection(db, "Messages"), orderBy("createdAt", "asc"));
 
   const [user, setUser] = useState(false);
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
+
+  const divForScroll = useRef(null);
 
   const submitHandler = async (e) => {
 
     e.preventDefault();
   
     try{
+
+      setMessage("");
   
       await addDoc(collection(db, "Messages"), {
         text: message,
@@ -41,7 +43,7 @@ function App() {
         createdAt: serverTimestamp()
       });
 
-      setMessage("");
+      divForScroll.current.scrollIntoView({behavior: "smooth"});
   
     }catch(error){
       alert(error);
@@ -50,6 +52,9 @@ function App() {
   }
 
   useEffect(() => {
+
+   const q = query(collection(db, "Messages"), orderBy("createdAt", "asc"));
+
    const unsubscribe =  onAuthStateChanged(auth, (data) => {
       setUser(data);
     });
@@ -78,7 +83,9 @@ function App() {
              Logout
            </Button>
    
-           <VStack h={"full"} w={"full"} overflowY={"auto"}>
+           <VStack h={"full"} w={"full"} overflowY={"auto"} css={{"&::-webkit-scrollbar" : {
+            display: "none"
+          }}}>
             {
               messages.map((item) => (
                 <Message 
@@ -89,7 +96,11 @@ function App() {
                 />
               ))
             }
+
+            <div ref={divForScroll}></div>
            </VStack>
+
+        
    
            <form onSubmit={submitHandler} style={{width: "100%"}}>
             <HStack>
